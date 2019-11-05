@@ -49,12 +49,12 @@ module Oblig3 where
   initGame :: Game -> Int -> IO ()
   initGame game n = let b = createBoard game n in do putBoard b ; generiskSpill b 1 game
 
-  -- data type containing functions specific to each game mode
+  -- record containing functions specific to each game mode
   data Game = 
     Game { createBoard :: Int -> Board 
          , valid :: Board -> (Int, Int) -> Bool -- checks if the move is valid
          , move :: Board -> (Int, Int) -> Board -- performs a move - modifies a board
-         , fin :: Board -> Bool -- checks if there are any valid moves left
+         , finished :: Board -> Bool 
          , rules :: String
          , prompt :: String
          , computer :: Board -> Int -> (Int, Int) -- computers strategy
@@ -66,7 +66,7 @@ module Oblig3 where
   generiskSpill :: Board -> Player -> Game -> IO ()
   generiskSpill board player game
     -- game over:
-    | fin game board =
+    | finished game board =
       let msg = if winner game player == 1 then "You win!" else "Computer wins!" 
        in do putStrLn msg; spill
     -- players turn:
@@ -109,25 +109,25 @@ module Oblig3 where
   putBoard b = 
    do putRows b 1
       putCol (length b)
-    where 
-      putRows :: Board -> Int -> IO ()
-      putRows [] _ = return ()
-      putRows (x:xs) ln = do
-        putStrLn (show ln ++ concat (replicate x " *"))
-        putRows xs (ln+1)
+
+  putRows :: Board -> Int -> IO ()
+  putRows [] _ = return ()
+  putRows (x:xs) ln = 
+   do putStrLn (show ln ++ concat (replicate x " *"))
+      putRows xs (ln+1)
                       
-      putCol :: Int -> IO ()
-      putCol n = putStrLn ("  " ++ concat (map (\x -> show x ++ " ") [1..n])) 
+  putCol :: Int -> IO ()
+  putCol n = putStrLn ("  " ++ concat (map (\x -> show x ++ " ") [1..n])) 
 
   
   ---------------------------------- Game of Nim -----------------------------------------
   
   nim :: Game
   nim = Game b nimValid nimMove f nimRules p nimStrat next
-      where
-        b = \n -> [1..n] 
-        f = all (== 0)
-        p = "Nim: r a / ? / q > "
+    where
+      b = \n -> [1..n] 
+      f = all (== 0)
+      p = "Nim: r a / ? / q > "
 
 
   nimRules :: String
