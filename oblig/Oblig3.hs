@@ -1,18 +1,11 @@
 -- Morten Bergmann (qez008)
 module Oblig3 where
-  import Data.Char (intToDigit, isDigit)
+  import Data.Char
   import Data.Bits (xor)
   import Numeric (showIntAtBase)
 
-  type Player = Int
+  -------------------------------------- User Input --------------------------------------
 
-  next :: Player -> Player
-  next 1 = 2
-  next _ = 1   
-
-  type Board = [Int]
-
-  -- data type for handling user inputs
   data Cmd = Nim Int | Chomp Int | How | Move (Int, Int) | Quit | Error String 
     deriving Show
 
@@ -21,49 +14,62 @@ module Oblig3 where
     case cmd of
       ["?"] -> How
       ["q"] -> Quit
-      ["n", y] -> if wordIsNumber y then Nim (readInt y) 
-                  else Error "Nim requires an int between 1 and 9 as an argument"
-      ["c", y] -> if wordIsNumber y then Chomp (readInt y)
-                  else Error "Chomp requires an int between 1 and 9 as an argument"
-      [x, y]   -> if wordIsNumber x && wordIsNumber y then Move (readInt x, readInt y)
-                  else Error "Invalid command"
+      ["n", x] -> 
+        case readInt x of
+          Just n  -> if sizeOk n then Nim n else Error "Invalid board size"
+          Nothing -> Error "Nim requires an int between 1 and 9 as an argument"
+      ["c", x] -> 
+        case readInt x of
+          Just n  -> if sizeOk n then Chomp n else Error "Invalid board size"
+          Nothing -> Error "Chomp requires an int between 1 and 9 as an argument"
+      [x, y]   -> 
+        case (readInt x, readInt y) of
+          (Just x', Just y') -> Move (x', y')
+          _ -> Error "Invalid command"
       _ -> Error "Invalid argument(s)"
-  
+    where 
+      sizeOk size = (size > 0 && size < 10)
+              
+  readInt :: String -> Maybe Int
+  readInt str = if all isDigit str then Just (read str :: Int) else Nothing
 
-  -- data type containing functions specific to each game mode
-  data Game = 
-    Game { board :: Int -> Board -- creates a starting board - not the board itself
-         , valid :: Board -> (Int, Int) -> Bool -- checks if the move is valid
-         , move  :: Board -> (Int, Int) -> Board -- performs a move - modifies a board
-         , fin  :: Board -> Bool -- checks if there are any valid moves left
-         , rules :: String
-         , prompt :: String
-         , computer :: Board -> Int -> (Int, Int) -- computers strategy
-         , winner :: Player -> Player
-         }
+  -------------------------------------- Prompt (1) --------------------------------------
 
   spill :: IO ()
   spill =
    do putStr "n(im) x / c(homp) x / q(uit) > "
       inp <- getLine
       case verifyInput (words inp) of
-        Nim n -> if (n < 1 || n > 9) then invalidSize else createGame nim n
-        Chomp n -> if (n < 1 || n > 9) then invalidSize else createGame chomp n
-        Quit -> putStrLn "Bye!"
+        Nim n     -> initGame nim n
+        Chomp n   -> initGame chomp n
+        Quit      -> putStrLn "Bye!"
         Error msg -> do putStrLn msg; spill
-        _ -> do putStrLn "Unknown input"; spill
-    where 
-      createGame game size = do let b = board game size
-                                putBoard b -- show the board here
-                                generiskSpill b 1 game
-      invalidSize = do putStrLn "Invalid board size - pick a number between 1 and 9" 
-                       spill
+        _         -> do putStrLn "Unknown input"; spill
+
+  initGame :: Game -> Int -> IO ()
+  initGame game n = let b = createBoard game n in do putBoard b ; generiskSpill b 1 game
+
+  -- data type containing functions specific to each game mode
+  data Game = 
+    Game { createBoard :: Int -> Board 
+         , valid :: Board -> (Int, Int) -> Bool -- checks if the move is valid
+         , move :: Board -> (Int, Int) -> Board -- performs a move - modifies a board
+         , fin :: Board -> Bool -- checks if there are any valid moves left
+         , rules :: String
+         , prompt :: String
+         , computer :: Board -> Int -> (Int, Int) -- computers strategy
+         , winner :: Player -> Player
+         }
+
+  -------------------------------------- Prompt (2) --------------------------------------
 
   generiskSpill :: Board -> Player -> Game -> IO ()
   generiskSpill board player game
-    | fin game board = 
+    -- game over:
+    | fin game board =
       let msg = if winner game player == 1 then "You win!" else "Computer wins!" 
        in do putStrLn msg; spill
+    -- players turn:
     | player == 1 = 
      do putStr (prompt game)
         inp <- getLine
@@ -81,6 +87,7 @@ module Oblig3 where
               do putStrLn "Invalid move - try again."; repeatPlay
           _ -> 
             do putStrLn "Invalid move - try again."; repeatPlay
+    -- computers turn:
     | otherwise = 
      do putStrLn "Computers move:"
         let cm = (computer game board (length board))
@@ -90,8 +97,13 @@ module Oblig3 where
     where
       repeatPlay = generiskSpill board player game
 
+  type Player = Int
+
+  next :: Player -> Player
+  next 1 = 2
+  next _ = 1   
     
-  --------------------------------- Helper Funcs -----------------------------------------
+  type Board = [Int]
 
   putBoard :: Board -> IO ()
   putBoard b = 
@@ -107,20 +119,16 @@ module Oblig3 where
       putCol :: Int -> IO ()
       putCol n = putStrLn ("  " ++ concat (map (\x -> show x ++ " ") [1..n])) 
 
-  readInt :: String -> Int
-  readInt str = read str :: Int
-
-  wordIsNumber :: [Char] -> Bool -- Checks if all the characters in a string are digits
-  wordIsNumber xs = all isDigit xs
-
   
   ---------------------------------- Game of Nim -----------------------------------------
   
   nim :: Game
-  nim = Game b nimValid nimMove nimFin nimRules p nimStrat next
+  nim = Game b nimValid nimMove f nimRules p nimStrat next
       where
         b = \n -> [1..n] 
+        f = all (== 0)
         p = "Nim: r a / ? / q > "
+
 
   nimRules :: String
   nimRules 
@@ -131,9 +139,6 @@ module Oblig3 where
    ++ "| removing the pile out of the game. When a player is unable to |\n"
    ++ "| move (if there is no stone left), the game ends.              |\n"
    ++ "–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––"
-  
-  nimFin :: Board -> Bool
-  nimFin = all (== 0)
 
   nimValid :: Board -> (Int, Int) -> Bool
   nimValid b (r, a)
@@ -210,9 +215,10 @@ module Oblig3 where
   --------------------------------- Game of Chomp ----------------------------------------
   
   chomp :: Game
-  chomp = Game b chompValid chompMove chompFin chompRules p chompStrat id
+  chomp = Game b chompValid chompMove f chompRules p chompStrat id
     where 
       b = \n -> take n [n,n..]
+      f = all (== 0)
       p = "Chomp: r k / ? / q > "
 
   chompRules :: String
@@ -222,19 +228,16 @@ module Oblig3 where
    ++ "| squares above and to the right of the picked square are      |\n"
    ++ "| removed. The person  forced to take the last square loses.   |\n"
    ++ "––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––"
-   
 
-  chompFin :: Board -> Bool
-  chompFin = all (==0)
-
+  -- checks that the row is within bounds
+  -- if performing the move modifies the board in some way the move is valid
   chompValid :: Board -> (Int, Int) -> Bool
   chompValid b m@(r, _) = r >= 1 && r <= length b && chompMove b m /= b
 
   chompMove :: Board -> (Int, Int) -> Board
-  chompMove b (r, k) = [if row > r then x else min x (k-1) | (x, row) <- zip b [1,2..] ]
+  chompMove b (r, k) = [if row > r then x else min x (k-1) | (x, row) <- zip b [1,2..]]
   -- for every row less or eqaul r, the value should be k or less
 
   {- This is a silly strat - It just picks the first available square -}
   chompStrat :: Board -> Int -> (Int, Int)
   chompStrat b _ = lastRow b
-  
