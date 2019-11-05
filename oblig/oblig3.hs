@@ -237,16 +237,4 @@ module Oblig3 where
   {- This is a silly strat - It just picks the first available square -}
   chompStrat :: Board -> Int -> (Int, Int)
   chompStrat b _ = lastRow b
-
-
-
-
-
-
-
-  --bin' :: Int -> Int
-  --bin' n = read (concat $ map show (toBinary n)) :: Int
-
-  --toBinary :: Int -> [Int]
-  --toBinary 0 = [0]
-  --toBinary n = toBinary (n `quot` 2) ++ [n `rem` 2]
+  
