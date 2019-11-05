@@ -1,0 +1,64 @@
+import System.IO
+
+--A:
+
+dt m = do putStr (drawT m 1)
+
+drawT m i = if i < m then do putStr draw i
+                             drawT (m (i+1))
+            else return()
+
+draw x = if x/= then '*' ++ draw (x-1)
+         else "\n"
+------------------------------
+
+drawTr 0 = return();
+drawTr n = do drawTr n-1
+           putStr['*' | i <- [1..n]]
+
+
+--A2:
+
+jt n = jt' n 0
+
+jt'0_ = return()
+jt'n a = do jt' (n-1) (a+1)
+            putStr[' ' | k <-[0,a] ++ eo m]
+
+eo 0 = "";
+eo n = '*':' ': eo(n-1)
+
+rep str 0 = ""
+rep str n = str ++ rep str (n-1) 
+
+--B:
+
+data FileOrFolder = File | Folder [FileOrFolder]
+
+pp f = pph f 0
+pph File n = putStrLn $ (rep ' ' n) ++ "-File"
+pph (Folder []) n = putStrLn $ (rep ' ' n) ++ "-Folder"
+pph (Folder xs) n = sequence_ (putStrLn (rep ' ' n) 
+                    ++ "-Folder") : [pph x (n+1) | x <- xs]
+ -- mapM_ vs sequence_
+
+ pph' (Folder xs) n = do putStrLn (rep ' ' n) ++ "-Folder"
+                         sequence_ [pph x (n+1) | x <- xs]
+
+                         mapM_ (\x -> pph x n) xs
+
+
+--C: se brett.hs
+----------------------------------------------------------
+--alt fra oppgavegjennomgang:
+
+brett x = putStrLn (' ' ++ writeTop x ++ writeRow x x)
+
+writeTop x = writeTaux x (x-1)
+writeTaux x i = if i >= 0 then [intToDigit ((x-1) mod 10)] ++ " " ++ writeTaux x (i-1)
+                else ""
+
+writeRow x i = if i >= 0 then rep '.' x ++ (show (x-i-1))++ "\n" ++ writeRow x (i-1) 
+                         else ""
+
+--D:

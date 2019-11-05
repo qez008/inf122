@@ -1,0 +1,17 @@
+import Data.Char
+
+data Ast = V String | N String [Ast] deriving (Show, Read)
+
+tokens str = tokenzie str "()=" ", "
+
+parse :: [String] -> [(Ast,Ast)]
+parse [] = []
+parse xs = let (t1, "=":r1) = parseT xs ; (t2,r2) = parseT r1 in (t1,t2):(parse r2)
+
+parseT :: [String] -> (Ast, [String])
+parseT (x:"(":xs)) = let (args, r1) = parseArg xs [] in (N x args, r1)
+parseT (x:xs) = if isUpper x then (V x, xs)
+                else (N x [], xs)
+
+parseArg (")":xs) ar = (ar, xs)
+parseArg xs ar = let (t1, r1) = parseT xs in 

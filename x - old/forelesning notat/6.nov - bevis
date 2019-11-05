@@ -1,0 +1,44 @@
+Induksjonshypotese()
+
+(1) [] ++ bs = bs
+(2) (a:as) ++ bs = a:(as ++ bs)
+
+For alle lister as:
+    as ++ (bs ++ cs) = (as ++ bs) ++ cs
+
+Induksjon på as:
+
+
+------------------------------------------------------------------------------
+Rekursjonsinvariant
+for alle lister as, bs: rev(as++bs) = (rev bs)++(rev as)
+Induksjon på... as:         (a) []++bs = bs = bs++[]
+                            (b) (x:as)++bs = x:(as++bs)
+
+invariant: rev (as+bs) = (rev bs)++(rev as)
+(1)          rev[] = []
+(2)     rev (x:xs) = rev xs++[x]
+
+(as=[])     rev ([]++bs)  = rev bs = (rev bs)++[]
+                          = (rev bs)++(rev []) 
+
+------------------------------------------------------------------------------
+Reverser inputlisten - halerekursivt
+
+(1) revh xs = rev xs                rev [] = []
+(2) rev1 xs ys = rev xs ++ ys       rev (x:xs) = rev xs ++ [x]
+(3) rev h xs = rev1 xs []
+
+Definer rev1 slik at (2) holder...? Anta at den gjør det:
+Basis: [], da for alle ys:
+    rev1 [] ys ?= (rev[]) ++ ys = [] ++ ys = ys
+                                        definerer: rev1 [] ys = ys
+    = rev1 [] ys
+
+Induksjon: (x:xs) med IH = for alle ys: rev1 xs ys = rev xs ++ ys
+             rev1 (x:xs) ys ?= rev (x:xs) ++ ys
+                      (rev)  = (rev xs ++[x]) ++ ys
+    ((a++b)++c = a++(b++c))  = rev xs ++ ([x]++ys)
+     (x:[]++ys = x:([]++ys)  = x:ys) = rev xs ++ (x:ys)
+                       (IH)  = rev1 xs (x:ys)
+                               og definerer rev1 (x:xs) ys = rev1 xs (x:ys)
