@@ -40,11 +40,11 @@ module Oblig3 where
    do putStr "n(im) x / c(homp) x / q(uit) > "
       inp <- getLine
       case verifyInput (words inp) of
-        Nim n     -> initGame nim n
-        Chomp n   -> initGame chomp n
-        Quit      -> putStrLn "Bye!"
-        Error msg -> do putStrLn msg; spill
-        _         -> do putStrLn "Unknown input"; spill
+        Nim n   -> initGame nim n
+        Chomp n -> initGame chomp n
+        Quit    -> putStrLn "Bye!"
+        Error m -> do putStrLn m; spill
+        _       -> do putStrLn "Unknown input"; spill
 
   initGame :: Game -> Int -> IO ()
   initGame game n = let b = createBoard game n in do putBoard b ; generiskSpill b 1 game
@@ -52,7 +52,7 @@ module Oblig3 where
   -- record containing functions specific to each game mode
   data Game = 
     Game { createBoard :: Int -> Board 
-         , valid :: Board -> (Int, Int) -> Bool -- checks if the move is valid
+         , valid :: Board -> (Int, Int) -> Bool -- checks if a move is valid
          , move :: Board -> (Int, Int) -> Board -- performs a move - modifies a board
          , finished :: Board -> Bool 
          , rules :: String
@@ -188,6 +188,7 @@ module Oblig3 where
     | otherwise = if null $ goodMoves b n then nimStrat b (n-1) else head $ goodMoves b n
 
   -- A list of moves that are valid and will make the nim sum of the board equal to 0
+  -- Does not create a list of ALL good moves
   goodMoves :: Board -> Int -> [(Int, Int)]
   goodMoves b n = [(x,n) | x <- rowsLeft b, nimValid b (x,n) && nim0 (nimMove b (x,n))]
 
@@ -235,9 +236,46 @@ module Oblig3 where
   chompValid b m@(r, _) = r >= 1 && r <= length b && chompMove b m /= b
 
   chompMove :: Board -> (Int, Int) -> Board
-  chompMove b (r, k) = [if row > r then x else min x (k-1) | (x, row) <- zip b [1,2..]]
-  -- for every row less or eqaul r, the value should be k or less
+  chompMove b (r, k) = [if r' > r then k' else min k' (k-1) | (r', k') <- zip [1,2..] b]
+  -- for every r' less or eqaul r, the value should be k or less
 
-  {- This is a silly strat - It just picks the first available square -}
+  -- This is a silly strategy - It just picks the first available square
   chompStrat :: Board -> Int -> (Int, Int)
   chompStrat b _ = lastRow b
+
+  ---------------------------------------- Tests -----------------------------------------
+
+  test :: (Eq a, Show a) => a -> a -> IO ()
+  test expected result = 
+    do if expected == result 
+        then putStrLn "  OK!" 
+        else putStrLn $ "  Expected: " ++ show expected ++ " | Result; " ++ show result
+
+  test1 :: IO ()
+  test1 =
+   do putStrLn "goodMoves test:"
+      test 1 (length $ goodMoves [1] 1) 
+      test 0 (length $ goodMoves [1,1] 1)
+      test 3 (length $ goodMoves [1,1,1] 1)
+      test 0 (length $ goodMoves [1,1,1,1] 1)
+      test 5 (length $ goodMoves [1..9] 1)
+
+  {- nim sanityTest:
+        Should print either 0 or some other number every other round. If one round is 0, 
+        the next round should be not 0. If the nim sum is 0, there should be no good 
+        moves. If it isn't, there should be atleast 1 good move.
+  -}
+  sanityTest :: Board -> IO ()
+  sanityTest board 
+    | finished nim board = do putBoard board ; putStrLn "Game Over \nTest successful"
+    | shouldBeFalse = putStrLn "goodMoves failed" 
+    | otherwise = do putBoard board
+                     putStrLn $ "Nim sum: " ++ show (nimSum board)
+                     putStrLn $ "Good moves: " ++ show (gm board)
+                     sanityTest (move nim (board) (computer nim board 9))
+    where 
+      shouldBeFalse = nim0 board && not (null (gm board))
+
+  -- get all good moves
+  gm :: Board -> [(Int,Int)]
+  gm b = concat $ map (\n-> [x | x <- goodMoves b n]) [1..(length b)]
