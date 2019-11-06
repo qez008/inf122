@@ -245,22 +245,12 @@ module Oblig3 where
 
   ---------------------------------------- Tests -----------------------------------------
 
-  test :: (Eq a, Show a) => a -> a -> IO ()
-  test expected result = 
-    do if expected == result 
-        then putStrLn "  OK!" 
-        else putStrLn $ "  Expected: " ++ show expected ++ " | Result; " ++ show result
+  {-  nim sanityTest:
 
-  test1 :: IO ()
-  test1 =
-   do putStrLn "goodMoves test:"
-      test 1 (length $ goodMoves [1] 1) 
-      test 0 (length $ goodMoves [1,1] 1)
-      test 3 (length $ goodMoves [1,1,1] 1)
-      test 0 (length $ goodMoves [1,1,1,1] 1)
-      test 5 (length $ goodMoves [1..9] 1)
+        Computer VS Computer
+        One computer should always perform a good move, putting the game in a nim 0 state.
+        The other computer should be forced to perform a bad move every round.
 
-  {- nim sanityTest:
         Should print either 0 or some other number every other round. If one round is 0, 
         the next round should be not 0. If the nim sum is 0, there should be no good 
         moves. If it isn't, there should be atleast 1 good move.
@@ -268,13 +258,13 @@ module Oblig3 where
   sanityTest :: Board -> IO ()
   sanityTest board 
     | finished nim board = do putBoard board ; putStrLn "Game Over \nTest successful"
-    | shouldBeFalse = putStrLn "goodMoves failed" 
+    | invariant = putStrLn "goodMoves failed" 
     | otherwise = do putBoard board
                      putStrLn $ "Nim sum: " ++ show (nimSum board)
                      putStrLn $ "Good moves: " ++ show (gm board)
                      sanityTest (move nim (board) (computer nim board 9))
     where 
-      shouldBeFalse = nim0 board && not (null (gm board))
+      invariant = nim0 board && not (null (gm board))
 
   -- get all good moves
   gm :: Board -> [(Int,Int)]
