@@ -14,7 +14,7 @@ module Oblig3 where
     case cmd of
       ["?"] -> How
       ["q"] -> Quit
-      ["n", x] -> 
+      ["n", x] ->
         case readInt x of
           Just n  -> if sizeOk n then Nim n else Error "Invalid board size"
           Nothing -> Error "Nim requires an int between 1 and 9 as an argument"
@@ -22,7 +22,7 @@ module Oblig3 where
         case readInt x of
           Just n  -> if sizeOk n then Chomp n else Error "Invalid board size"
           Nothing -> Error "Chomp requires an int between 1 and 9 as an argument"
-      [x, y]   -> 
+      [x, y] -> 
         case (readInt x, readInt y) of
           (Just x', Just y') -> Move (x', y')
           _ -> Error "Invalid command"
@@ -54,7 +54,6 @@ module Oblig3 where
     Game { createBoard :: Int -> Board 
          , valid :: Board -> (Int, Int) -> Bool -- checks if a move is valid
          , move :: Board -> (Int, Int) -> Board -- performs a move - modifies a board
-         , finished :: Board -> Bool 
          , rules :: String
          , prompt :: String
          , computer :: Board -> Int -> (Int, Int) -- computers strategy
@@ -66,7 +65,7 @@ module Oblig3 where
   generiskSpill :: Board -> Player -> Game -> IO ()
   generiskSpill board player game
     -- game over:
-    | finished game board =
+    | fin board =
       let msg = if winner game player == 1 then "You win!" else "Computer wins!" 
        in do putStrLn msg; spill
     -- players turn:
@@ -105,6 +104,9 @@ module Oblig3 where
     
   type Board = [Int]
 
+  fin :: Board -> Bool
+  fin = all (== 0)
+
   putBoard :: Board -> IO ()
   putBoard b = 
    do putRows b 1
@@ -123,10 +125,9 @@ module Oblig3 where
   ---------------------------------- Game of Nim -----------------------------------------
   
   nim :: Game
-  nim = Game b nimValid nimMove f nimRules p nimStrat next
+  nim = Game b nimValid nimMove nimRules p nimStrat next
     where
       b = \n -> [1..n] 
-      f = all (== 0)
       p = "Nim: r a / ? / q > "
 
 
@@ -216,10 +217,9 @@ module Oblig3 where
   --------------------------------- Game of Chomp ----------------------------------------
   
   chomp :: Game
-  chomp = Game b chompValid chompMove f chompRules p chompStrat id
+  chomp = Game b chompValid chompMove chompRules p chompStrat id
     where 
       b = \n -> take n [n,n..]
-      f = all (== 0)
       p = "Chomp: r k / ? / q > "
 
   chompRules :: String
@@ -257,7 +257,7 @@ module Oblig3 where
   -}
   sanityTest :: Board -> IO ()
   sanityTest board 
-    | finished nim board = do putBoard board ; putStrLn "Game Over \nTest successful"
+    | fin board = do putBoard board ; putStrLn "Game Over \nTest successful"
     | invariant = putStrLn "goodMoves failed" 
     | otherwise = do putBoard board
                      putStrLn $ "Nim sum: " ++ show (nimSum board)
