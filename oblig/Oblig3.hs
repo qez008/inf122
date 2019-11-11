@@ -1,6 +1,6 @@
 -- Morten Bergmann (qez008)
 module Oblig3 where
-  import Data.Char
+  import Data.Char (isDigit, intToDigit)
   import Data.Bits (xor)
   import Numeric (showIntAtBase)
 
@@ -133,13 +133,13 @@ module Oblig3 where
 
   nimRules :: String
   nimRules 
-    = "–––––––––––––––––––---–––– Rules of Nim –––––––––---––––––––––––-\n"
-   ++ "| Each player, in turn, must take at least one stone, but they  |\n"
-   ++ "| may take more than one stone as long as they all come from    |\n"
-   ++ "| the same pile. It's allowed to make a pile empty, effectively |\n"
-   ++ "| removing the pile out of the game. When a player is unable to |\n"
-   ++ "| move (if there is no stone left), the game ends.              |\n"
-   ++ "–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––"
+    = "----------------------- Rules of Nim -----------------------\n"
+   ++ "| Each player, in turn, must take one or more stones from  |\n"
+   ++ "| a pile. It's allowed to make a pile empty, effectively   |\n"
+   ++ "| removing the pile out of the game. When a player is      |\n"
+   ++ "| unable to move (if theres no stone left), the game ends. |\n"
+   ++ "| r a = row amount                                         |\n"
+   ++ "------------------------------------------------------------"
 
   nimValid :: Board -> (Int, Int) -> Bool
   nimValid b (r, a)
@@ -224,11 +224,12 @@ module Oblig3 where
 
   chompRules :: String
   chompRules 
-    = "––––––––––––––––––-–––– Rules of Chomp ––––––––––––––––––--–––––\n"
-   ++ "| Players take turns picking a square. With each choice, all   |\n"
-   ++ "| squares above and to the right of the picked square are      |\n"
-   ++ "| removed. The person  forced to take the last square loses.   |\n"
-   ++ "––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––"
+    = "--------------------- Rules of Chomp ----------------------\n"
+   ++ "| Players take turns picking a square. With each choice,  |\n"
+   ++ "| all squares above and to the right of the picked square |\n"
+   ++ "| are removed. The person forced to take the last square  |\n"
+   ++ "| loses. r k = coordinate of square you want to remove.   |\n"
+   ++ "-----------------------------------------------------------"
 
   -- checks that the row is within bounds
   -- if performing the move modifies the board in some way the move is valid
@@ -245,26 +246,30 @@ module Oblig3 where
 
   ---------------------------------------- Tests -----------------------------------------
 
-  {-  nim sanityTest:
+  {- nim sanity test: 
 
-        Computer VS Computer
-        One computer should always perform a good move, putting the game in a nim 0 state.
-        The other computer should be forced to perform a bad move every round.
+     Computer VS Computer
+     One computer should always perform a good move, putting the game in a nim 0 state.
+     When in a nim 0 state there should be no good moves thus the other computer should
+     be forced to perform a bad move every round. Performing a bad move makes the nim
+     sum not 0.
 
-        Should print either 0 or some other number every other round. If one round is 0, 
-        the next round should be not 0. If the nim sum is 0, there should be no good 
-        moves. If it isn't, there should be atleast 1 good move.
+     If the nim sum after a round is 0, then it should be not 0 after the next. If the
+     nim sum is not 0, the computer strategy must put the game in a nim 0 state,
+     otherwise the strategy is incorrect.
+
   -}
   sanityTest :: Board -> IO ()
   sanityTest board 
     | fin board = do putBoard board ; putStrLn "Game Over \nTest successful"
-    | invariant = putStrLn "goodMoves failed" 
+    | invariant = putStrLn "test failed" 
     | otherwise = do putBoard board
                      putStrLn $ "Nim sum: " ++ show (nimSum board)
                      putStrLn $ "Good moves: " ++ show (gm board)
                      sanityTest (move nim (board) (computer nim board 9))
     where 
-      invariant = nim0 board && not (null (gm board))
+      -- True if the game is in a state it shouldn't be in:
+      invariant = if nim0 board then length (gm board) > 0 else null (gm board)
 
   -- get all good moves
   gm :: Board -> [(Int,Int)]
